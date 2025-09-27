@@ -29,8 +29,6 @@ let selectedMicrophoneId = null;
 let serverUseAudioWorklet = null;
 let configReadyResolve;
 const configReady = new Promise((r) => (configReadyResolve = r));
-let selectedTranslationLanguage = null;
-let translationEnabled = false;
 
 waveCanvas.width = 60 * (window.devicePixelRatio || 1);
 waveCanvas.height = 30 * (window.devicePixelRatio || 1);
@@ -42,12 +40,9 @@ const chunkSelector = document.getElementById("chunkSelector");
 const websocketInput = document.getElementById("websocketInput");
 const websocketDefaultSpan = document.getElementById("wsDefaultUrl");
 const linesTranscriptDiv = document.getElementById("linesTranscript");
-const linesTranslationDiv = document.getElementById("linesTranslation");
 const timerElement = document.querySelector(".timer");
 const themeRadios = document.querySelectorAll('input[name="theme"]');
 const microphoneSelect = document.getElementById("microphoneSelect");
-const translationLanguageSelect = document.getElementById("translationLanguage");
-const translationStatusDiv = document.getElementById("translationStatus");
 
 const settingsToggle = document.getElementById("settingsToggle");
 const settingsDiv = document.querySelector(".settings");
@@ -172,28 +167,6 @@ function handleMicrophoneChange() {
       }, 1000);
     });
   }
-}
-
-function handleTranslationLanguageChange() {
-  selectedTranslationLanguage = translationLanguageSelect.value || null;
-  translationEnabled = !!selectedTranslationLanguage;
-  
-  if (translationEnabled) {
-    translationStatusDiv.textContent = `Translating to: ${translationLanguageSelect.options[translationLanguageSelect.selectedIndex].text}`;
-    translationStatusDiv.style.color = 'var(--text)';
-    translationStatusDiv.style.fontStyle = 'normal';
-  } else {
-    translationStatusDiv.textContent = 'Select a target language to enable translation';
-    translationStatusDiv.style.color = 'var(--muted)';
-    translationStatusDiv.style.fontStyle = 'italic';
-  }
-  
-  // Clear translation panel when language changes
-  if (linesTranslationDiv) {
-    linesTranslationDiv.innerHTML = '';
-  }
-  
-  console.log(`Translation language changed to: ${selectedTranslationLanguage || 'None'}`);
 }
 
 // Helpers
@@ -357,9 +330,6 @@ function renderLinesWithBuffer(
   if (current_status === "no_audio_detected") {
     linesTranscriptDiv.innerHTML =
       "<p style='text-align: center; color: var(--muted); margin-top: 20px;'><em>No audio detected...</em></p>";
-    if (linesTranslationDiv) {
-      linesTranslationDiv.innerHTML = "";
-    }
     return;
   }
 
@@ -465,64 +435,6 @@ function renderLinesWithBuffer(
   const transcriptContainer = document.querySelector('.transcript-container');
   if (transcriptContainer) {
     transcriptContainer.scrollTo({ top: transcriptContainer.scrollHeight, behavior: "smooth" });
-  }
-  
-  // Render translation panel if translation is enabled
-  if (translationEnabled && linesTranslationDiv) {
-    renderTranslationPanel(lines, buffer_diarization, buffer_transcription, isFinalizing);
-  }
-}
-
-function renderTranslationPanel(lines, buffer_diarization, buffer_transcription, isFinalizing = false) {
-  if (!translationEnabled || !linesTranslationDiv) return;
-  
-  const translationLinesHtml = (lines || [])
-    .map((item, idx) => {
-      // Only show translated content, not the original transcription
-      if (item.speaker === -2) {
-        return ""; // Skip silence markers in translation
-      }
-      
-      let speakerLabel = "";
-      if (item.speaker !== 0) {
-        const speakerNum = `<span class="speaker-badge">${item.speaker}</span>`;
-        speakerLabel = `<span id="speaker">${speakerIcon}${speakerNum}</span>`;
-      }
-      
-      let translatedText = "";
-      
-      // Show translation if available, otherwise show placeholder
-      if (item.translation && item.translation.trim()) {
-        translatedText = item.translation.trim();
-      } else if (item.text) {
-        // Show original text with translation indicator if no translation yet
-        translatedText = `<span style="color: var(--muted); font-style: italic;">Translating: "${item.text}"</span>`;
-      }
-      
-      // Add buffer content for the last line
-      if (idx === lines.length - 1) {
-        if (buffer_transcription) {
-          translatedText += `<span class="buffer_transcription">${buffer_transcription}</span>`;
-        }
-      }
-      
-      return translatedText.trim().length > 0 || speakerLabel.length > 0
-        ? `<p>${speakerLabel}<br/><div class='textcontent'>${translatedText}</div></p>`
-        : "";
-    })
-    .filter(html => html.length > 0)
-    .join("");
-  
-  if (translationLinesHtml.length === 0) {
-    linesTranslationDiv.innerHTML = "<p style='text-align: center; color: var(--muted); margin-top: 20px;'><em>Translation will appear here...</em></p>";
-  } else {
-    linesTranslationDiv.innerHTML = translationLinesHtml;
-  }
-  
-  // Scroll translation panel
-  const translationContainer = document.querySelector('.translation-panel .transcript-container');
-  if (translationContainer) {
-    translationContainer.scrollTo({ top: translationContainer.scrollHeight, behavior: "smooth" });
   }
 }
 
@@ -817,20 +729,11 @@ recordButton.addEventListener("click", toggleRecording);
 if (microphoneSelect) {
   microphoneSelect.addEventListener("change", handleMicrophoneChange);
 }
-
-if (translationLanguageSelect) {
-  translationLanguageSelect.addEventListener("change", handleTranslationLanguageChange);
-}
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     await enumerateMicrophones();
   } catch (error) {
     console.log("Could not enumerate microphones on load:", error);
-  }
-  
-  // Initialize translation language selection
-  if (translationLanguageSelect) {
-    handleTranslationLanguageChange();
   }
 });
 navigator.mediaDevices.addEventListener('devicechange', async () => {

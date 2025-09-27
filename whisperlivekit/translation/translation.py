@@ -84,73 +84,27 @@ class OnlineTranslation:
         if not input:
             return ""
         nllb_output_lang = get_nllb_code(output_lang)
-        
-        # Handle common language code variations
-        if not nllb_output_lang:
-            # Try common variations
-            lang_variations = {
-                'es': 'es-ES',
-                'fr': 'fr-FR', 
-                'de': 'de-DE',
-                'it': 'it-IT',
-                'pt': 'pt-PT',
-                'ru': 'ru-RU',
-                'ja': 'ja-JP',
-                'ko': 'ko-KR',
-                'zh': 'zh-CN',
-                'ar': 'ar-SA',
-                'hi': 'hi-IN',
-                'nl': 'nl-NL',
-                'sv': 'sv-SE',
-                'da': 'da-DK',
-                'no': 'nb-NO',
-                'fi': 'fi-FI',
-                'pl': 'pl-PL',
-                'tr': 'tr-TR',
-                'th': 'th-TH',
-                'vi': 'vi-VN',
-                'id': 'id-ID',
-                'ms': 'ms-MY'
-            }
-            if output_lang in lang_variations:
-                nllb_output_lang = get_nllb_code(lang_variations[output_lang])
-        
-        if not nllb_output_lang:
-            print(f"Warning: Could not find NLLB code for language: {output_lang}")
-            return input  # Return original text if translation fails
             
         tokenizer = self.translation_model.get_tokenizer(input_lang)
         tokenizer_output = tokenizer(input, return_tensors="pt").to(self.translation_model.device)
         
         if self.translation_model.backend_type == 'ctranslate2':
             source = tokenizer.convert_ids_to_tokens(tokenizer_output['input_ids'][0])    
-            results = self.translation_model.translator.translate_batch([source], target_prefix=[[nllb_output_lang]] if nllb_output_lang else None)
+            results = self.translation_model.translator.translate_batch([source], target_prefix=[[nllb_output_lang]])
             target = results[0].hypotheses[0][1:]
             result = tokenizer.decode(tokenizer.convert_tokens_to_ids(target))
         else:
-            # Get the token ID for the target language
-            target_token_id = tokenizer.convert_tokens_to_ids([nllb_output_lang])
-            if target_token_id and target_token_id[0] is not None:
-                translated_tokens = self.translation_model.translator.generate(**tokenizer_output, forced_bos_token_id=target_token_id[0])
-                result = tokenizer.batch_decode(translated_tokens, skip_special_tokens=True)[0]
-            else:
-                # Fallback: try without forced_bos_token_id
-                translated_tokens = self.translation_model.translator.generate(**tokenizer_output)
-                result = tokenizer.batch_decode(translated_tokens, skip_special_tokens=True)[0]
+            translated_tokens = self.translation_model.translator.generate(**tokenizer_output, forced_bos_token_id=tokenizer.convert_tokens_to_ids(nllb_output_lang))
+            result = tokenizer.batch_decode(translated_tokens, skip_special_tokens=True)[0]
         return result
     
     def translate_tokens(self, tokens):
         if tokens:
-            # Filter out non-token objects (like Silence)
-            valid_tokens = [token for token in tokens if hasattr(token, 'text')]
-            if not valid_tokens:
-                return None
-                
-            text = ' '.join([token.text for token in valid_tokens])
-            start = valid_tokens[0].start
-            end = valid_tokens[-1].end
+            text = ' '.join([token.text for token in tokens])
+            start = tokens[0].start
+            end = tokens[-1].end
             if self.input_languages[0] == 'auto':
-                input_lang = valid_tokens[0].detected_language
+                input_lang = tokens[0].detected_language
             else:
                 input_lang = self.input_languages[0]
                 
@@ -176,8 +130,7 @@ class OnlineTranslation:
         if len(self.buffer) < self.len_processed_buffer + 3: #nothing new to process
             return self.validated + [self.translation_remaining]
         while i < len(self.buffer):
-            # Skip Silence objects and other non-token objects
-            if hasattr(self.buffer[i], 'is_punctuation') and self.buffer[i].is_punctuation():
+            if self.buffer[i].is_punctuation():
                 translation_sentence = self.translate_tokens(self.buffer[:i+1])
                 self.validated.append(translation_sentence)
                 self.buffer = self.buffer[i+1:]
