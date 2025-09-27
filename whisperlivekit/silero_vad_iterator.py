@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
     import torch
 
-    model, _ = torch.hub.load(repo_or_dir="snakers4/silero-vad", model="silero_vad")
+    model, _ = torch.hub.load(repo_or_dir="snakers4/silero-vad", model="silero_vad", trust_repo=True)
     vac = FixedVADIterator(model)
     #   vac = VADIterator(model)  # the second case crashes with this
 

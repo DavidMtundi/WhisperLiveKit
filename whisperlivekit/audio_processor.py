@@ -74,7 +74,7 @@ class AudioProcessor:
         self.asr = models.asr
         self.tokenizer = models.tokenizer
         self.vac_model = models.vac_model
-        if self.args.vac:
+        if self.args.vac and models.vac_model is not None:
             self.vac = FixedVADIterator(models.vac_model)
         else:
             self.vac = None

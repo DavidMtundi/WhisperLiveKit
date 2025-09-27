@@ -99,7 +99,25 @@ class TranscriptionEngine:
         
         if self.args.vac:
             import torch
-            self.vac_model, _ = torch.hub.load(repo_or_dir="snakers4/silero-vad", model="silero_vad")            
+            try:
+                # Load Silero VAD model with trust_repo=True to bypass GitHub rate limits
+                self.vac_model, _ = torch.hub.load(repo_or_dir="snakers4/silero-vad", model="silero_vad", trust_repo=True)
+            except Exception as e:
+                # Fallback: try to load cached model if available
+                import os
+                cache_dir = os.path.expanduser("~/.cache/torch/hub/checkpoints")
+                model_path = os.path.join(cache_dir, "silero_vad.jit")
+                if os.path.exists(model_path):
+                    self.vac_model = torch.jit.load(model_path, map_location="cpu")
+                    print(f"Loaded cached Silero VAD model from {model_path}")
+                else:
+                    # Last resort: try loading without network access
+                    try:
+                        self.vac_model, _ = torch.hub.load(repo_or_dir="snakers4/silero-vad", model="silero_vad", trust_repo=True, force_reload=False)
+                    except Exception as final_e:
+                        print(f"Warning: Failed to load Silero VAD model: {final_e}")
+                        print("Continuing without VAD model. Set --no-vac to disable this warning.")
+                        self.vac_model = None            
         
         if self.args.transcription:
             if self.args.backend == "simulstreaming": 
