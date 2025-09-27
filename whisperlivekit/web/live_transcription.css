@@ -284,7 +284,8 @@ body {
 #chunkSelector,
 #websocketInput,
 #themeSelector,
-#microphoneSelect {
+#microphoneSelect,
+#translationLanguage {
   font-size: 16px;
   padding: 5px 8px;
   border-radius: 8px;
@@ -294,7 +295,8 @@ body {
   max-height: 30px;
 }
 
-#microphoneSelect {
+#microphoneSelect,
+#translationLanguage {
   width: 100%;
   max-width: 190px;
   min-width: 120px;
@@ -303,7 +305,8 @@ body {
 #chunkSelector:focus,
 #websocketInput:focus,
 #themeSelector:focus,
-#microphoneSelect:focus {
+#microphoneSelect:focus,
+#translationLanguage:focus {
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
@@ -382,6 +385,47 @@ label {
   border-radius: 999px;
 }
 
+/* Dual Panel Layout */
+.dual-panel-container {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  gap: 1px;
+  background-color: var(--border);
+}
+
+.transcript-panel,
+.translation-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg);
+  min-width: 0; /* Allow flex items to shrink below content size */
+}
+
+.panel-header {
+  background-color: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 15px 20px 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.translation-status {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+
 .transcript-container {
   flex: 1;
   overflow-y: auto;
@@ -395,18 +439,21 @@ label {
 }
 
 /* Transcript area */
-#linesTranscript {
+#linesTranscript,
+#linesTranslation {
   margin: 0 auto;
   max-width: 700px;
   text-align: left;
   font-size: 16px;
 }
 
-#linesTranscript p {
+#linesTranscript p,
+#linesTranslation p {
   margin: 0px 0;
 }
 
-#linesTranscript strong {
+#linesTranscript strong,
+#linesTranslation strong {
   color: var(--text);
 }
 
@@ -552,7 +599,8 @@ label {
   }
   
   #websocketInput,
-  #microphoneSelect {
+  #microphoneSelect,
+  #translationLanguage {
     min-width: 100px;
     max-width: 160px;
   }
@@ -578,7 +626,8 @@ label {
   }
   
   #websocketInput,
-  #microphoneSelect {
+  #microphoneSelect,
+  #translationLanguage {
     max-width: 140px;
   }
   
@@ -594,6 +643,15 @@ label {
   
   .transcript-container {
     padding: 10px;
+  }
+  
+  .dual-panel-container {
+    flex-direction: column;
+  }
+  
+  .transcript-panel,
+  .translation-panel {
+    min-height: 200px;
   }
 }
 
